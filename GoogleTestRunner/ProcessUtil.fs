@@ -1,6 +1,7 @@
 ﻿namespace GoogleTestRunner
 open System
 open System.IO
+open System.ComponentModel
 open System.Diagnostics
 open Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging
 
@@ -22,14 +23,17 @@ type ProcessUtil() =
     /// Returns the process output in a list of strings.
     static member getOutputOfCommand(wd, command, param, ?throwIfNonZeroExitCode0) =
         let throwIfNonZeroExitCode = defaultArg throwIfNonZeroExitCode0 false
-        use ret = Process.Start(ProcessStartInfo(command, param,
-                                    RedirectStandardOutput = true,
-                                    RedirectStandardError = false,
-                                    UseShellExecute = false,
-                                    CreateNoWindow = true,
-                                    WorkingDirectory = wd))
-        (ret.WaitForInputIdle, ret.BeginOutputReadLine) |> ignore
-        ProcessUtil.readTheStream throwIfNonZeroExitCode ret.StandardOutput ret
+        try
+            use ret = Process.Start(ProcessStartInfo(command, param,
+                                        RedirectStandardOutput = true,
+                                        RedirectStandardError = false,
+                                        UseShellExecute = false,
+                                        CreateNoWindow = true,
+                                        WorkingDirectory = wd))
+            (ret.WaitForInputIdle, ret.BeginOutputReadLine) |> ignore
+            ProcessUtil.readTheStream throwIfNonZeroExitCode ret.StandardOutput ret
+        with
+            | :? Win32Exception as ex -> printfn "Error occured during process start : %s" (ex.ToString()); List.Empty
 
     static member runCommand wd command param =
         ignore (ProcessUtil.getOutputOfCommand(wd, command, param))
